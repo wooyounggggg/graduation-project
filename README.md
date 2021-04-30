@@ -11,6 +11,10 @@ Server will be started at ...
 ```
 
 ### 요청 보내기
+
+header의 Content-Type을 application/json으로 설정해주고  
+아래와 같이 body를 구성하여 url로 POST 요청
+
 ![](./request.png)
 
 ## PBFT
