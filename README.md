@@ -1,5 +1,18 @@
 # Sample implementation of various consensus algorithms
 
+## 사용법
+
+### 서버 실행
+```
+go run main.go [nodeId]
+
+/* 아래처럼 나오면 서버 on 성공 */
+Server will be started at ...
+```
+
+### 요청 보내기
+![](./request.png)
+
 ## PBFT
 ### Architecture
 #### Overall behavior (4 peers)
