@@ -3,7 +3,8 @@
 ## 사용법
 
 ### 서버 실행
-```
+```java
+/* nodeId에 Apple, Google, MS, IBM을 각각 넣어서 4개의 노드를 생성해야 합의가 정상적으로 이루어짐 */
 go run main.go [nodeId]
 
 /* 아래처럼 나오면 서버 on 성공 */
