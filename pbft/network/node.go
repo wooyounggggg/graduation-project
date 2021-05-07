@@ -1,11 +1,12 @@
 package network
 
 import (
-	"github.com/bigpicturelabs/consensusPBFT/pbft/consensus"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
-	"errors"
+
+	"github.com/bigpicturelabs/consensusPBFT/pbft/consensus"
 )
 
 type Node struct {
@@ -38,21 +39,41 @@ func NewNode(nodeID string) *Node {
 	const viewID = 10000000000 // temporary.
 
 	node := &Node{
-		// Hard-coded for test.
+		/*
+			nodeId(key)와 그에 해당하는 localhost의 포트(value)를 설정하는 부분.
+			기존에 Apple, Google, IBM 등으로 main 실행시에 입력하던 [nodeId] 부분에
+			아래 NodeTable의 key가 들어갑니다.
+		*/
 		NodeID: nodeID,
 		NodeTable: map[string]string{
-			"Apple": "localhost:1111",
-			"MS": "localhost:1112",
-			"Google": "localhost:1113",
-			"IBM": "localhost:1114",
+			"1":  "localhost:1111",
+			"2":  "localhost:1112",
+			"3":  "localhost:1113",
+			"4":  "localhost:1114",
+			"5":  "localhost:1115",
+			"6":  "localhost:1116",
+			"7":  "localhost:1117",
+			"8":  "localhost:1118",
+			"9":  "localhost:1119",
+			"10": "localhost:1120",
+			"11": "localhost:1121",
+			"12": "localhost:1122",
+			"13": "localhost:1123",
+			"14": "localhost:1124",
+			"15": "localhost:1125",
+			"16": "localhost:1126",
+			"17": "localhost:1127",
+			"18": "localhost:1128",
+			"19": "localhost:1129",
+			"20": "localhost:1130",
 		},
 		View: &View{
-			ID: viewID,
+			ID:      viewID,
 			Primary: "Apple",
 		},
 
 		// Consensus-related struct
-		CurrentState: nil,
+		CurrentState:  nil,
 		CommittedMsgs: make([]*consensus.RequestMsg, 0),
 		MsgBuffer: &MsgBuffer{
 			ReqMsgs:        make([]*consensus.RequestMsg, 0),
@@ -64,7 +85,7 @@ func NewNode(nodeID string) *Node {
 		// Channels
 		MsgEntrance: make(chan interface{}),
 		MsgDelivery: make(chan interface{}),
-		Alarm: make(chan bool),
+		Alarm:       make(chan bool),
 	}
 
 	// Start message dispatcher
@@ -76,7 +97,7 @@ func NewNode(nodeID string) *Node {
 	// Start message resolver
 	go node.resolveMsg()
 
- 	return node
+	return node
 }
 
 func (node *Node) Broadcast(msg interface{}, path string) map[string]error {
@@ -93,7 +114,7 @@ func (node *Node) Broadcast(msg interface{}, path string) map[string]error {
 			continue
 		}
 
-		send(url + path, jsonMsg)
+		send(url+path, jsonMsg)
 	}
 
 	if len(errorMap) == 0 {
@@ -116,7 +137,7 @@ func (node *Node) Reply(msg *consensus.ReplyMsg) error {
 	}
 
 	// Client가 없으므로, 일단 Primary에게 보내는 걸로 처리.
-	send(node.NodeTable[node.View.Primary] + "/reply", jsonMsg)
+	send(node.NodeTable[node.View.Primary]+"/reply", jsonMsg)
 
 	return nil
 }
@@ -239,7 +260,7 @@ func (node *Node) createStateForNewConsensus() error {
 	if len(node.CommittedMsgs) == 0 {
 		lastSequenceID = -1
 	} else {
-		lastSequenceID = node.CommittedMsgs[len(node.CommittedMsgs) - 1].SequenceID
+		lastSequenceID = node.CommittedMsgs[len(node.CommittedMsgs)-1].SequenceID
 	}
 
 	// Create a new state for this new consensus process in the Primary
