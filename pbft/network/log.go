@@ -2,7 +2,7 @@ package network
 
 import (
 	"fmt"
-	"github.com/bigpicturelabs/consensusPBFT/pbft/consensus"
+	"graduation-project/pbft/consensus"
 )
 
 func LogMsg(msg interface{}) {
