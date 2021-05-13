@@ -1,7 +1,7 @@
 package network
 
 import (
-	"github.com/bigpicturelabs/consensusPBFT/pbft/consensus"
+	"graduation-project/pbft/consensus"
 	"encoding/json"
 	"fmt"
 	"time"
