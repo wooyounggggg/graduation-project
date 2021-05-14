@@ -18,6 +18,9 @@ type Node struct {
 	MsgEntrance   chan interface{}
 	MsgDelivery   chan interface{}
 	Alarm         chan bool
+	IsLeader	  bool			/* Leader 여부 */
+	LeaderId	  string		/* 클러스터 리더의 ID */
+	Reliability	  int			/* 노드 신뢰도 */
 }
 
 type MsgBuffer struct {
