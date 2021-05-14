@@ -1,11 +1,11 @@
 package network
 
 import (
-	"net/http"
-	"graduation-project/pbft/consensus"
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"bytes"
+	"graduation-project/pbft/consensus"
+	"net/http"
 )
 
 type Server struct {

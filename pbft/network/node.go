@@ -1,12 +1,11 @@
 package network
 
 import (
-	"graduation-project/pbft/consensus"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"graduation-project/pbft/consensus"
 	"time"
-
 )
 
 type Node struct {

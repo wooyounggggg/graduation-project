@@ -1,8 +1,8 @@
 package main
 
 import (
-	"os"
 	"graduation-project/pbft/network"
+	"os"
 )
 
 func main() {
