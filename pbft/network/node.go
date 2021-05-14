@@ -34,9 +34,8 @@ type View struct {
 
 const ResolvingTimeDuration = time.Millisecond * 1000 // 1 second.
 
-func NewNode(nodeID string) *Node {
+func NewNode(nodeID string, N int, K int) *Node {
 	const viewID = 10000000000 // temporary.
-
 	node := &Node{
 		/*
 			nodeId(key)와 그에 해당하는 localhost의 포트(value)를 설정하는 부분.
@@ -44,28 +43,7 @@ func NewNode(nodeID string) *Node {
 			아래 NodeTable의 key가 들어갑니다.
 		*/
 		NodeID: nodeID,
-		NodeTable: map[string]string{
-			"1":  "localhost:1111",
-			"2":  "localhost:1112",
-			"3":  "localhost:1113",
-			"4":  "localhost:1114",
-			"5":  "localhost:1115",
-			"6":  "localhost:1116",
-			"7":  "localhost:1117",
-			"8":  "localhost:1118",
-			"9":  "localhost:1119",
-			"10": "localhost:1120",
-			"11": "localhost:1121",
-			"12": "localhost:1122",
-			"13": "localhost:1123",
-			"14": "localhost:1124",
-			"15": "localhost:1125",
-			"16": "localhost:1126",
-			"17": "localhost:1127",
-			"18": "localhost:1128",
-			"19": "localhost:1129",
-			"20": "localhost:1130",
-		},
+		NodeTable: consensus.MakeNodeTable(N),
 		View: &View{
 			ID:      viewID,
 			Primary: "1",
@@ -219,7 +197,6 @@ func (node *Node) GetPrepare(prepareMsg *consensus.VoteMsg) error {
 
 func (node *Node) GetCommit(commitMsg *consensus.VoteMsg) error {
 	LogMsg(commitMsg)
-
 	replyMsg, committedMsg, err := node.CurrentState.Commit(commitMsg)
 	if err != nil {
 		return err
