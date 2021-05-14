@@ -1,12 +1,12 @@
 package network
 
 import (
+	"graduation-project/pbft/consensus"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
-	"github.com/bigpicturelabs/consensusPBFT/pbft/consensus"
 )
 
 type Node struct {
@@ -69,7 +69,7 @@ func NewNode(nodeID string) *Node {
 		},
 		View: &View{
 			ID:      viewID,
-			Primary: "Apple",
+			Primary: "1",
 		},
 
 		// Consensus-related struct
