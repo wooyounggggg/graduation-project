@@ -12,6 +12,10 @@ func Hash(content []byte) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
+func LeaderMapping(nodeId string) bool {
+	return false
+}
+
 /** 
 	func MakeNodeTable
 	@brief
