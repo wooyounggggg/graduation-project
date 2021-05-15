@@ -26,17 +26,40 @@ func Hash(content []byte) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-func LeaderMapping(nodeId string) bool {
-	return false
+/**
+	func LeaderMapping
+	
+	@brief
+		nodeId를 전달받아 해당 nodeId의 cluster leader id를
+		찾아 반환합니다.
+
+	@params
+		string nodeId: Leader와 mapping하려는 node의 Id
+  */
+func LeaderMapping(nodeId string, N int, K int) string {
+	// N = 20, K = 5 quot = 4
+	// 1,2,3,4 / 5,6,7,8 / .... / 17,18,19,20
+	// 15 -> 20 / 5 = 4 (1, 2, 3, 4)
+	// 
+	quotient := N / K
+	idInt := CustomAtoi(nodeId)-1
+	clusterNo := idInt / quotient
+	result := strconv.Itoa(clusterNo * quotient + 1)
+	fmt.Println("nodeId: "+nodeId + " LeaderId: " + result)
+	return result
 }
 
 /** 
 	func MakeNodeTable
+	
 	@brief
 		1~N번까지 노드의 번호를 기반으로
-		{ nodeId : 'localhost:11XX'}의 형태로 만들어줍니다.
+		{ nodeId: 'localhost:11XX'}의 형태로 만들어줍니다.
+
+	@return
+		{ 1: 'localhost:1111', 2: 'localhost:1112', ...}
 	@params
-		max int : 노드의 총 개수
+		int max: 노드의 총 개수
 */
 func MakeNodeTable(max int) map[string]string {
     min := 1

@@ -52,6 +52,10 @@ func NewNode(nodeID string, N int, K int) *Node {
 			Primary: "1",
 		},
 
+		IsLeader:    false,
+		LeaderId:	 consensus.LeaderMapping(nodeID, N, K),
+		Reliability: 0,
+
 		// Consensus-related struct
 		CurrentState:  nil,
 		CommittedMsgs: make([]*consensus.RequestMsg, 0),
