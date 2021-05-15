@@ -1,11 +1,11 @@
 package network
 
 import (
-	"graduation-project/pbft/consensus"
 	"encoding/json"
-	"fmt"
-	"time"
 	"errors"
+	"fmt"
+	"graduation-project/pbft/consensus"
+	"time"
 )
 
 type Node struct {
@@ -41,18 +41,18 @@ func NewNode(nodeID string) *Node {
 		// Hard-coded for test.
 		NodeID: nodeID,
 		NodeTable: map[string]string{
-			"Apple": "localhost:1111",
-			"MS": "localhost:1112",
+			"Apple":  "localhost:1111",
+			"MS":     "localhost:1112",
 			"Google": "localhost:1113",
-			"IBM": "localhost:1114",
+			"IBM":    "localhost:1114",
 		},
 		View: &View{
-			ID: viewID,
+			ID:      viewID,
 			Primary: "Apple",
 		},
 
 		// Consensus-related struct
-		CurrentState: nil,
+		CurrentState:  nil,
 		CommittedMsgs: make([]*consensus.RequestMsg, 0),
 		MsgBuffer: &MsgBuffer{
 			ReqMsgs:        make([]*consensus.RequestMsg, 0),
@@ -64,7 +64,7 @@ func NewNode(nodeID string) *Node {
 		// Channels
 		MsgEntrance: make(chan interface{}),
 		MsgDelivery: make(chan interface{}),
-		Alarm: make(chan bool),
+		Alarm:       make(chan bool),
 	}
 
 	// Start message dispatcher
@@ -76,7 +76,7 @@ func NewNode(nodeID string) *Node {
 	// Start message resolver
 	go node.resolveMsg()
 
- 	return node
+	return node
 }
 
 func (node *Node) Broadcast(msg interface{}, path string) map[string]error {
@@ -93,7 +93,7 @@ func (node *Node) Broadcast(msg interface{}, path string) map[string]error {
 			continue
 		}
 
-		send(url + path, jsonMsg)
+		send(url+path, jsonMsg)
 	}
 
 	if len(errorMap) == 0 {
@@ -115,9 +115,18 @@ func (node *Node) Reply(msg *consensus.ReplyMsg) error {
 		return err
 	}
 
-	// Client가 없으므로, 일단 Primary에게 보내는 걸로 처리.
-	send(node.NodeTable[node.View.Primary] + "/reply", jsonMsg)
-
+	send(node.NodeTable[node.View.Primary]+"/reply", jsonMsg)
+	/*
+	   primary node가 commit message처리후 stage done : reply에 들어가면 primaey node의 currentstate nil로 변경합니다
+	   다음 req를 받기위해 nodeTable에 있는 모든 node에게 /authorization보냅니다
+	*/
+	if node.NodeTable[node.NodeID] == node.NodeTable[node.View.Primary] {
+		node.CurrentState = nil
+		for key, value := range node.NodeTable {
+			send(value+"/authorization", jsonMsg)
+			fmt.Printf(key)
+		}
+	}
 	return nil
 }
 
@@ -224,8 +233,15 @@ func (node *Node) GetCommit(commitMsg *consensus.VoteMsg) error {
 	return nil
 }
 
+//The client will collect these reply messages and if f + 1 valid reply messages are arrived, the client will accept the result.
 func (node *Node) GetReply(msg *consensus.ReplyMsg) {
 	fmt.Printf("Result: %s by %s\n", msg.Result, msg.NodeID)
+}
+
+//node의 currentstate를 nil로 바꿉니다
+func (node *Node) GetAuthorize() {
+	node.CurrentState = nil
+	//fmt.Printf("%s is change to nil\n", node.NodeID)
 }
 
 func (node *Node) createStateForNewConsensus() error {
@@ -239,7 +255,7 @@ func (node *Node) createStateForNewConsensus() error {
 	if len(node.CommittedMsgs) == 0 {
 		lastSequenceID = -1
 	} else {
-		lastSequenceID = node.CommittedMsgs[len(node.CommittedMsgs) - 1].SequenceID
+		lastSequenceID = node.CommittedMsgs[len(node.CommittedMsgs)-1].SequenceID
 	}
 
 	// Create a new state for this new consensus process in the Primary
