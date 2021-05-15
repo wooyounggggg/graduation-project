@@ -3,8 +3,22 @@ package consensus
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
+	"os"
 	"strconv"
 )
+
+func HandleError(err error, message string) {
+	if err != nil {
+		fmt.Println(message)
+		os.Exit(1)
+	}
+}
+func CustomAtoi(str string) int {
+	strToNum, err := strconv.Atoi(str)
+	HandleError(err, "err: strconv.Atoi err")
+	return strToNum
+}
 
 func Hash(content []byte) string {
 	h := sha256.New()
