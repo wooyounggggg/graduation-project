@@ -98,6 +98,39 @@ func (server *Server) getReply(writer http.ResponseWriter, request *http.Request
 	server.node.GetReply(&msg)
 }
 
+func (server *Server) getCheckPoint(writer http.ResponseWriter, request *http.Request) {
+	var msg consensus.CheckPointMsg
+	err := json.NewDecoder(request.Body).Decode(&msg)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	server.node.MsgEntrance <- &msg
+}
+
+func (server *Server) getViewChange(writer http.ResponseWriter, request *http.Request) {
+	var msg consensus.ViewChangeMsg
+	err := json.NewDecoder(request.Body).Decode(&msg)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	server.node.MsgEntrance <- &msg
+}
+
+func (server *Server) getNewView(writer http.ResponseWriter, request *http.Request) {
+	var msg consensus.NewViewMsg
+	err := json.NewDecoder(request.Body).Decode(&msg)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	server.node.MsgEntrance <- &msg
+}
+
 func send(url string, msg []byte) error {
 	buff := bytes.NewBuffer(msg)
 	c := &http.Client{}
