@@ -1,15 +1,15 @@
 package network
 
 import (
-	"net/http"
-	"graduation-project/pbft/consensus"
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"bytes"
+	"graduation-project/pbft/consensus"
+	"net/http"
 )
 
 type Server struct {
-	url string
+	url  string
 	node *Node
 }
 
@@ -36,6 +36,11 @@ func (server *Server) setRoute() {
 	http.HandleFunc("/prepare", server.getPrepare)
 	http.HandleFunc("/commit", server.getCommit)
 	http.HandleFunc("/reply", server.getReply)
+
+	// View change.
+	http.HandleFunc("/checkpoint", server.getCheckPoint)
+	http.HandleFunc("/viewchange", server.getViewChange)
+	http.HandleFunc("/newview", server.getNewView)
 }
 
 func (server *Server) getReq(writer http.ResponseWriter, request *http.Request) {
@@ -93,7 +98,15 @@ func (server *Server) getReply(writer http.ResponseWriter, request *http.Request
 	server.node.GetReply(&msg)
 }
 
-func send(url string, msg []byte) {
+func send(url string, msg []byte) error {
 	buff := bytes.NewBuffer(msg)
-	http.Post("http://" + url, "application/json", buff)
+	c := &http.Client{}
+
+	resp, err := c.Post("http://"+url, "application/json", buff)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return nil
 }
