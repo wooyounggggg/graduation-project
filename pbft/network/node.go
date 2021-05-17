@@ -103,6 +103,16 @@ func (node *Node) Broadcast(msg interface{}, path string) map[string]error {
 	}
 }
 
+func (node *Node) BroadcastNil(path string) {
+	for nodeID, url := range node.NodeTable {
+		if nodeID == node.NodeID {
+			continue
+		}
+		send(node.NodeTable[node.View.Primary]+path, nil)
+		send(url+path, nil)
+	}
+}
+
 func (node *Node) Reply(msg *consensus.ReplyMsg) error {
 	// Print all committed messages.
 	for _, value := range node.CommittedMsgs {
@@ -121,11 +131,7 @@ func (node *Node) Reply(msg *consensus.ReplyMsg) error {
 	   다음 req를 받기위해 nodeTable에 있는 모든 node에게 /authorization보냅니다
 	*/
 	if node.NodeTable[node.NodeID] == node.NodeTable[node.View.Primary] {
-		node.CurrentState = nil
-		for key, value := range node.NodeTable {
-			send(value+"/authorization", jsonMsg)
-			fmt.Printf(key)
-		}
+		node.BroadcastNil("/authorization")
 	}
 	return nil
 }
@@ -241,7 +247,7 @@ func (node *Node) GetReply(msg *consensus.ReplyMsg) {
 //node의 currentstate를 nil로 바꿉니다
 func (node *Node) GetAuthorize() {
 	node.CurrentState = nil
-	//fmt.Printf("%s is change to nil\n", node.NodeID)
+	fmt.Printf("[READY] %s is ready to start consensus\n", node.NodeID)
 }
 
 func (node *Node) createStateForNewConsensus() error {
