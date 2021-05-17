@@ -22,8 +22,6 @@ func LogMsg(msg interface{}) {
 		}
 	case *consensus.ReplyMsg:
 		fmt.Printf("[REPLY] Result: %s by %s\n", m.Result, m.NodeID)
-	case *consensus.CheckPointMsg:
-		fmt.Printf("[CheckPointMsg] NodeID: %s\n", m.NodeID)
 	case *consensus.ViewChangeMsg:
 		fmt.Printf("[ViewChangeMsg] NodeID: %s\n", m.NodeID)
 	}

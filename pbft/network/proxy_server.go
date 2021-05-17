@@ -37,8 +37,7 @@ func (server *Server) setRoute() {
 	http.HandleFunc("/commit", server.getCommit)
 	http.HandleFunc("/reply", server.getReply)
 
-	// View change.
-	http.HandleFunc("/checkpoint", server.getCheckPoint)
+	// View change
 	http.HandleFunc("/viewchange", server.getViewChange)
 	http.HandleFunc("/newview", server.getNewView)
 }
@@ -96,17 +95,6 @@ func (server *Server) getReply(writer http.ResponseWriter, request *http.Request
 	}
 
 	server.node.GetReply(&msg)
-}
-
-func (server *Server) getCheckPoint(writer http.ResponseWriter, request *http.Request) {
-	var msg consensus.CheckPointMsg
-	err := json.NewDecoder(request.Body).Decode(&msg)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	server.node.MsgEntrance <- &msg
 }
 
 func (server *Server) getViewChange(writer http.ResponseWriter, request *http.Request) {
