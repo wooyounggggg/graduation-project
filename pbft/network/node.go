@@ -1,11 +1,11 @@
 package network
 
 import (
-	"graduation-project/pbft/consensus"
 	"encoding/json"
-	"fmt"
-	"time"
 	"errors"
+	"fmt"
+	"graduation-project/pbft/consensus"
+	"time"
 )
 
 type Node struct {
@@ -18,6 +18,9 @@ type Node struct {
 	MsgEntrance   chan interface{}
 	MsgDelivery   chan interface{}
 	Alarm         chan bool
+	IsLeader	  bool			/* Leader 여부 */
+	LeaderId	  string		/* 클러스터 리더의 ID */
+	Reliability	  int			/* 노드 신뢰도 */
 }
 
 type MsgBuffer struct {
@@ -34,25 +37,27 @@ type View struct {
 
 const ResolvingTimeDuration = time.Millisecond * 1000 // 1 second.
 
-func NewNode(nodeID string) *Node {
+func NewNode(nodeID string, N int, K int) *Node {
 	const viewID = 10000000000 // temporary.
-
 	node := &Node{
-		// Hard-coded for test.
+		/*
+			nodeId(key)와 그에 해당하는 localhost의 포트(value)를 설정하는 부분.
+			기존에 Apple, Google, IBM 등으로 main 실행시에 입력하던 [nodeId] 부분에
+			아래 NodeTable의 key가 들어갑니다.
+		*/
 		NodeID: nodeID,
-		NodeTable: map[string]string{
-			"Apple": "localhost:1111",
-			"MS": "localhost:1112",
-			"Google": "localhost:1113",
-			"IBM": "localhost:1114",
-		},
+		NodeTable: consensus.MakeNodeTable(N),
 		View: &View{
-			ID: viewID,
-			Primary: "Apple",
+			ID:      viewID,
+			Primary: "1",
 		},
+
+		IsLeader:    false,
+		LeaderId:	 consensus.LeaderMapping(nodeID, N, K),
+		Reliability: 0,
 
 		// Consensus-related struct
-		CurrentState: nil,
+		CurrentState:  nil,
 		CommittedMsgs: make([]*consensus.RequestMsg, 0),
 		MsgBuffer: &MsgBuffer{
 			ReqMsgs:        make([]*consensus.RequestMsg, 0),
@@ -64,7 +69,7 @@ func NewNode(nodeID string) *Node {
 		// Channels
 		MsgEntrance: make(chan interface{}),
 		MsgDelivery: make(chan interface{}),
-		Alarm: make(chan bool),
+		Alarm:       make(chan bool),
 	}
 
 	// Start message dispatcher
@@ -76,7 +81,7 @@ func NewNode(nodeID string) *Node {
 	// Start message resolver
 	go node.resolveMsg()
 
- 	return node
+	return node
 }
 
 func (node *Node) Broadcast(msg interface{}, path string) map[string]error {
@@ -93,7 +98,7 @@ func (node *Node) Broadcast(msg interface{}, path string) map[string]error {
 			continue
 		}
 
-		send(url + path, jsonMsg)
+		send(url+path, jsonMsg)
 	}
 
 	if len(errorMap) == 0 {
@@ -116,7 +121,7 @@ func (node *Node) Reply(msg *consensus.ReplyMsg) error {
 	}
 
 	// Client가 없으므로, 일단 Primary에게 보내는 걸로 처리.
-	send(node.NodeTable[node.View.Primary] + "/reply", jsonMsg)
+	send(node.NodeTable[node.View.Primary]+"/reply", jsonMsg)
 
 	return nil
 }
@@ -199,7 +204,6 @@ func (node *Node) GetPrepare(prepareMsg *consensus.VoteMsg) error {
 
 func (node *Node) GetCommit(commitMsg *consensus.VoteMsg) error {
 	LogMsg(commitMsg)
-
 	replyMsg, committedMsg, err := node.CurrentState.Commit(commitMsg)
 	if err != nil {
 		return err
@@ -239,7 +243,7 @@ func (node *Node) createStateForNewConsensus() error {
 	if len(node.CommittedMsgs) == 0 {
 		lastSequenceID = -1
 	} else {
-		lastSequenceID = node.CommittedMsgs[len(node.CommittedMsgs) - 1].SequenceID
+		lastSequenceID = node.CommittedMsgs[len(node.CommittedMsgs)-1].SequenceID
 	}
 
 	// Create a new state for this new consensus process in the Primary

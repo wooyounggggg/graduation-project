@@ -1,11 +1,11 @@
 package network
 
 import (
-	"net/http"
-	"graduation-project/pbft/consensus"
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"bytes"
+	"graduation-project/pbft/consensus"
+	"net/http"
 )
 
 type Server struct {
@@ -13,8 +13,8 @@ type Server struct {
 	node *Node
 }
 
-func NewServer(nodeID string) *Server {
-	node := NewNode(nodeID)
+func NewServer(nodeID string, N int, K int) *Server {
+	node := NewNode(nodeID, N, K)
 	server := &Server{node.NodeTable[nodeID], node}
 
 	server.setRoute()
