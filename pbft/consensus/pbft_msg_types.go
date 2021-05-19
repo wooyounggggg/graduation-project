@@ -27,11 +27,27 @@ type VoteMsg struct {
 	SequenceID int64  `json:"sequenceID"`
 	Digest     string `json:"digest"`
 	NodeID     string `json:"nodeID"`
-	MsgType           `json:"msgType"`
+	MsgType    `json:"msgType"`
 }
 
 type MsgType int
+
 const (
 	PrepareMsg MsgType = iota
 	CommitMsg
 )
+
+type ViewChangeMsg struct {
+	NodeID     string `json:"nodeID"`
+	NextViewID int64  `json:"nextviewID"`
+}
+
+type SetPm struct {
+	PrePrepareMsg *PrePrepareMsg
+	PrepareMsgs   map[string]*VoteMsg
+}
+
+type NewViewMsg struct {
+	NodeID     string `json:"nodeID"`
+	NextViewID int64  `json:"nextviewID"`
+}

@@ -9,6 +9,8 @@ import (
 )
 
 type Node struct {
+	ViewChangeState *consensus.ViewChangeState
+	MsgError      chan []error
 	NodeID        string
 	NodeTable     map[string]string // key=nodeID, value=url
 	View          *View
@@ -18,8 +20,8 @@ type Node struct {
 	MsgEntrance   chan interface{}
 	MsgDelivery   chan interface{}
 	Alarm         chan bool
-	IsLeader	  bool			/* Leader 여부 */
-	LeaderId	  string		/* 클러스터 리더의 ID */
+	IsLeader	    bool			/* Leader 여부 */
+	LeaderId	    string		/* 클러스터 리더의 ID */
 	Reliability	  int			/* 노드 신뢰도 */
 }
 
@@ -46,6 +48,12 @@ func NewNode(nodeID string, N int, K int) *Node {
 			아래 NodeTable의 key가 들어갑니다.
 		*/
 		NodeID: nodeID,
+		NodeTable: map[string]string{
+			"Apple":  "localhost:1111",
+			"MS":     "localhost:1112",
+			"Google": "localhost:1113",
+			"IBM":    "localhost:1114",
+		},
 		NodeTable: consensus.MakeNodeTable(N),
 		View: &View{
 			ID:      viewID,
@@ -57,8 +65,9 @@ func NewNode(nodeID string, N int, K int) *Node {
 		Reliability: 0,
 
 		// Consensus-related struct
-		CurrentState:  nil,
-		CommittedMsgs: make([]*consensus.RequestMsg, 0),
+		CurrentState:    nil,
+		ViewChangeState: nil,
+		CommittedMsgs:   make([]*consensus.RequestMsg, 0),
 		MsgBuffer: &MsgBuffer{
 			ReqMsgs:        make([]*consensus.RequestMsg, 0),
 			PrePrepareMsgs: make([]*consensus.PrePrepareMsg, 0),
@@ -98,13 +107,20 @@ func (node *Node) Broadcast(msg interface{}, path string) map[string]error {
 			continue
 		}
 
-		send(url+path, jsonMsg)
+		err = send(url+path, jsonMsg)
+		if err != nil {
+			errorMap[nodeID] = err
+			continue
+		}
 	}
 
 	if len(errorMap) == 0 {
 		return nil
 	} else {
-		return errorMap
+		for nodeID, err := range errorMap {
+			fmt.Printf("[%s]: %s\n", nodeID, err)
+		}
+		panic("Broadcast ERROR!!!")
 	}
 }
 
@@ -141,6 +157,78 @@ func (node *Node) Reply(msg *consensus.ReplyMsg) error {
 	// Client가 없으므로, 일단 Primary에게 보내는 걸로 처리.
 	send(node.NodeTable[node.View.Primary]+"/reply", jsonMsg)
 
+	//ViewChange for test
+	node.StartViewChange()
+
+	return nil
+}
+
+func (node *Node) StartViewChange() {
+
+	//Start_ViewChange
+	LogStage("ViewChange", false) //ViewChange_Start
+
+	//Change View and Primary
+	node.updateView(node.View.ID + 1)
+
+	//Create ViewChangeState
+	node.ViewChangeState = consensus.CreateViewChangeState(node.NodeID, len(node.NodeTable), node.View.ID)
+
+	//Create ViewChangeMsg
+	viewChangeMsg, err := node.ViewChangeState.CreateViewChangeMsg()
+	if err != nil {
+		node.MsgError <- []error{err}
+		return
+	}
+
+	node.Broadcast(viewChangeMsg, "/viewchange")
+}
+
+func (node *Node) updateView(viewID int64) {
+	node.View.ID = viewID
+	// viewIdx := viewID % int64(len(node.NodeTable))
+	// For test (Apple -> MS)
+	node.View.Primary = node.NodeTable["MS"]
+
+	fmt.Println("ViewID:", node.View.ID, "Primary:", node.View.Primary)
+}
+
+func (node *Node) NewView(newviewMsg *consensus.NewViewMsg) error {
+	LogMsg(newviewMsg)
+
+	node.Broadcast(newviewMsg, "/newview")
+	LogStage("NewView", true)
+
+	return nil
+}
+
+func (node *Node) GetViewChange(viewchangeMsg *consensus.ViewChangeMsg) error {
+	LogMsg(viewchangeMsg)
+
+	if node.ViewChangeState == nil || node.ViewChangeState.CurrentStage != consensus.ViewChanged {
+		return nil
+	}
+
+	//newViewMsg, err := node.ViewChangeState.ViewChange(viewchangeMsg)
+	newView, err := node.ViewChangeState.ViewChange(viewchangeMsg)
+	if err != nil {
+		return err
+	}
+
+	LogStage("ViewChange", true)
+
+	if newView != nil && node.View.Primary == node.NodeID {
+
+		LogStage("NewView", false)
+		node.NewView(newView)
+
+	}
+
+	return nil
+}
+
+func (node *Node) GetNewView(msg *consensus.NewViewMsg) error {
+	fmt.Printf("NewView: %d by %s\n", msg.NextViewID, msg.NodeID)
 	return nil
 }
 
@@ -370,6 +458,10 @@ func (node *Node) routeMsg(msg interface{}) []error {
 				node.MsgDelivery <- msgs
 			}
 		}
+	case *consensus.ViewChangeMsg:
+		node.MsgDelivery <- msg
+	case *consensus.NewViewMsg:
+		node.MsgDelivery <- msg
 	}
 
 	return nil
@@ -460,6 +552,10 @@ func (node *Node) resolveMsg() {
 					// TODO: send err to ErrorChannel
 				}
 			}
+		case []*consensus.ViewChangeMsg:
+
+		case []*consensus.NewViewMsg:
+
 		}
 	}
 }

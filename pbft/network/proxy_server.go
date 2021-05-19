@@ -36,6 +36,10 @@ func (server *Server) setRoute() {
 	http.HandleFunc("/prepare", server.getPrepare)
 	http.HandleFunc("/commit", server.getCommit)
 	http.HandleFunc("/reply", server.getReply)
+
+	// View change
+	http.HandleFunc("/viewchange", server.getViewChange)
+	http.HandleFunc("/newview", server.getNewView)
 	http.HandleFunc("/authorization", server.getauthorize) /*primary node가 reply받은 후 node table의 전체 노드에게 보내지면 getauthorize함수를 실행합니다*/
 }
 
@@ -94,6 +98,40 @@ func (server *Server) getReply(writer http.ResponseWriter, request *http.Request
 	server.node.GetReply(&msg)
 }
 
+func (server *Server) getViewChange(writer http.ResponseWriter, request *http.Request) {
+	var msg consensus.ViewChangeMsg
+	err := json.NewDecoder(request.Body).Decode(&msg)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	server.node.MsgEntrance <- &msg
+}
+
+
+func (server *Server) getNewView(writer http.ResponseWriter, request *http.Request) {
+	var msg consensus.NewViewMsg
+	err := json.NewDecoder(request.Body).Decode(&msg)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	server.node.MsgEntrance <- &msg
+}
+
+func send(url string, msg []byte) error {
+	buff := bytes.NewBuffer(msg)
+	c := &http.Client{}
+
+	resp, err := c.Post("http://"+url, "application/json", buff)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return nil
 /*
 	node.GetAuthorize()를 실행합니다
 */
