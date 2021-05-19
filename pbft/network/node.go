@@ -9,17 +9,20 @@ import (
 )
 
 type Node struct {
-	NodeID          string
-	NodeTable       map[string]string // key=nodeID, value=url
-	View            *View
-	CurrentState    *consensus.State
 	ViewChangeState *consensus.ViewChangeState
-	CommittedMsgs   []*consensus.RequestMsg // kinda block.
-	MsgBuffer       *MsgBuffer
-	MsgEntrance     chan interface{}
-	MsgDelivery     chan interface{}
-	MsgError        chan []error
-	Alarm           chan bool
+	MsgError      chan []error
+	NodeID        string
+	NodeTable     map[string]string // key=nodeID, value=url
+	View          *View
+	CurrentState  *consensus.State
+	CommittedMsgs []*consensus.RequestMsg // kinda block.
+	MsgBuffer     *MsgBuffer
+	MsgEntrance   chan interface{}
+	MsgDelivery   chan interface{}
+	Alarm         chan bool
+	IsLeader	    bool			/* Leader 여부 */
+	LeaderId	    string		/* 클러스터 리더의 ID */
+	Reliability	  int			/* 노드 신뢰도 */
 }
 
 type MsgBuffer struct {
@@ -36,11 +39,14 @@ type View struct {
 
 const ResolvingTimeDuration = time.Millisecond * 1000 // 1 second.
 
-func NewNode(nodeID string) *Node {
+func NewNode(nodeID string, N int, K int) *Node {
 	const viewID = 10000000000 // temporary.
-
 	node := &Node{
-		// Hard-coded for test.
+		/*
+			nodeId(key)와 그에 해당하는 localhost의 포트(value)를 설정하는 부분.
+			기존에 Apple, Google, IBM 등으로 main 실행시에 입력하던 [nodeId] 부분에
+			아래 NodeTable의 key가 들어갑니다.
+		*/
 		NodeID: nodeID,
 		NodeTable: map[string]string{
 			"Apple":  "localhost:1111",
@@ -48,10 +54,15 @@ func NewNode(nodeID string) *Node {
 			"Google": "localhost:1113",
 			"IBM":    "localhost:1114",
 		},
+		NodeTable: consensus.MakeNodeTable(N),
 		View: &View{
 			ID:      viewID,
-			Primary: "Apple",
+			Primary: "1",
 		},
+
+		IsLeader:    false,
+		LeaderId:	 consensus.LeaderMapping(nodeID, N, K),
+		Reliability: 0,
 
 		// Consensus-related struct
 		CurrentState:    nil,
@@ -113,6 +124,16 @@ func (node *Node) Broadcast(msg interface{}, path string) map[string]error {
 	}
 }
 
+func (node *Node) BroadcastNil(path string) {
+	for nodeID, url := range node.NodeTable {
+		if nodeID == node.NodeID {
+			continue
+		}
+		send(node.NodeTable[node.View.Primary]+path, nil)
+		send(url+path, nil)
+	}
+}
+
 func (node *Node) Reply(msg *consensus.ReplyMsg) error {
 	// Print all committed messages.
 	for _, value := range node.CommittedMsgs {
@@ -125,6 +146,14 @@ func (node *Node) Reply(msg *consensus.ReplyMsg) error {
 		return err
 	}
 
+	send(node.NodeTable[node.View.Primary]+"/reply", jsonMsg)
+	/*
+	   primary node가 commit message처리후 stage done : reply에 들어가면 primaey node의 currentstate nil로 변경합니다
+	   다음 req를 받기위해 nodeTable에 있는 모든 node에게 /authorization보냅니다
+	*/
+	if node.NodeTable[node.NodeID] == node.NodeTable[node.View.Primary] {
+		node.BroadcastNil("/authorization")
+	}
 	// Client가 없으므로, 일단 Primary에게 보내는 걸로 처리.
 	send(node.NodeTable[node.View.Primary]+"/reply", jsonMsg)
 
@@ -281,7 +310,6 @@ func (node *Node) GetPrepare(prepareMsg *consensus.VoteMsg) error {
 
 func (node *Node) GetCommit(commitMsg *consensus.VoteMsg) error {
 	LogMsg(commitMsg)
-
 	replyMsg, committedMsg, err := node.CurrentState.Commit(commitMsg)
 	if err != nil {
 		return err
@@ -306,8 +334,15 @@ func (node *Node) GetCommit(commitMsg *consensus.VoteMsg) error {
 	return nil
 }
 
+//The client will collect these reply messages and if f + 1 valid reply messages are arrived, the client will accept the result.
 func (node *Node) GetReply(msg *consensus.ReplyMsg) {
 	fmt.Printf("Result: %s by %s\n", msg.Result, msg.NodeID)
+}
+
+//node의 currentstate를 nil로 바꿉니다
+func (node *Node) GetAuthorize() {
+	node.CurrentState = nil
+	fmt.Printf("[READY] %s is ready to start consensus\n", node.NodeID)
 }
 
 func (node *Node) createStateForNewConsensus() error {

@@ -13,8 +13,8 @@ type Server struct {
 	node *Node
 }
 
-func NewServer(nodeID string) *Server {
-	node := NewNode(nodeID)
+func NewServer(nodeID string, N int, K int) *Server {
+	node := NewNode(nodeID, N, K)
 	server := &Server{node.NodeTable[nodeID], node}
 
 	server.setRoute()
@@ -40,6 +40,7 @@ func (server *Server) setRoute() {
 	// View change
 	http.HandleFunc("/viewchange", server.getViewChange)
 	http.HandleFunc("/newview", server.getNewView)
+	http.HandleFunc("/authorization", server.getauthorize) /*primary node가 reply받은 후 node table의 전체 노드에게 보내지면 getauthorize함수를 실행합니다*/
 }
 
 func (server *Server) getReq(writer http.ResponseWriter, request *http.Request) {
@@ -108,6 +109,7 @@ func (server *Server) getViewChange(writer http.ResponseWriter, request *http.Re
 	server.node.MsgEntrance <- &msg
 }
 
+
 func (server *Server) getNewView(writer http.ResponseWriter, request *http.Request) {
 	var msg consensus.NewViewMsg
 	err := json.NewDecoder(request.Body).Decode(&msg)
@@ -130,4 +132,14 @@ func send(url string, msg []byte) error {
 	defer resp.Body.Close()
 
 	return nil
+/*
+	node.GetAuthorize()를 실행합니다
+*/
+func (server *Server) getauthorize(writer http.ResponseWriter, request *http.Request) {
+	server.node.GetAuthorize()
+}
+
+func send(url string, msg []byte) {
+	buff := bytes.NewBuffer(msg)
+	http.Post("http://"+url, "application/json", buff)
 }
