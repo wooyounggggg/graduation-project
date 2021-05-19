@@ -108,6 +108,16 @@ func (node *Node) Broadcast(msg interface{}, path string) map[string]error {
 	}
 }
 
+func (node *Node) BroadcastNil(path string) {
+	for nodeID, url := range node.NodeTable {
+		if nodeID == node.NodeID {
+			continue
+		}
+		send(node.NodeTable[node.View.Primary]+path, nil)
+		send(url+path, nil)
+	}
+}
+
 func (node *Node) Reply(msg *consensus.ReplyMsg) error {
 	// Print all committed messages.
 	for _, value := range node.CommittedMsgs {
@@ -120,6 +130,14 @@ func (node *Node) Reply(msg *consensus.ReplyMsg) error {
 		return err
 	}
 
+	send(node.NodeTable[node.View.Primary]+"/reply", jsonMsg)
+	/*
+	   primary node가 commit message처리후 stage done : reply에 들어가면 primaey node의 currentstate nil로 변경합니다
+	   다음 req를 받기위해 nodeTable에 있는 모든 node에게 /authorization보냅니다
+	*/
+	if node.NodeTable[node.NodeID] == node.NodeTable[node.View.Primary] {
+		node.BroadcastNil("/authorization")
+	}
 	// Client가 없으므로, 일단 Primary에게 보내는 걸로 처리.
 	send(node.NodeTable[node.View.Primary]+"/reply", jsonMsg)
 
@@ -228,8 +246,15 @@ func (node *Node) GetCommit(commitMsg *consensus.VoteMsg) error {
 	return nil
 }
 
+//The client will collect these reply messages and if f + 1 valid reply messages are arrived, the client will accept the result.
 func (node *Node) GetReply(msg *consensus.ReplyMsg) {
 	fmt.Printf("Result: %s by %s\n", msg.Result, msg.NodeID)
+}
+
+//node의 currentstate를 nil로 바꿉니다
+func (node *Node) GetAuthorize() {
+	node.CurrentState = nil
+	fmt.Printf("[READY] %s is ready to start consensus\n", node.NodeID)
 }
 
 func (node *Node) createStateForNewConsensus() error {

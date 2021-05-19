@@ -9,7 +9,7 @@ import (
 )
 
 type Server struct {
-	url string
+	url  string
 	node *Node
 }
 
@@ -36,6 +36,7 @@ func (server *Server) setRoute() {
 	http.HandleFunc("/prepare", server.getPrepare)
 	http.HandleFunc("/commit", server.getCommit)
 	http.HandleFunc("/reply", server.getReply)
+	http.HandleFunc("/authorization", server.getauthorize) /*primary node가 reply받은 후 node table의 전체 노드에게 보내지면 getauthorize함수를 실행합니다*/
 }
 
 func (server *Server) getReq(writer http.ResponseWriter, request *http.Request) {
@@ -93,7 +94,14 @@ func (server *Server) getReply(writer http.ResponseWriter, request *http.Request
 	server.node.GetReply(&msg)
 }
 
+/*
+	node.GetAuthorize()를 실행합니다
+*/
+func (server *Server) getauthorize(writer http.ResponseWriter, request *http.Request) {
+	server.node.GetAuthorize()
+}
+
 func send(url string, msg []byte) {
 	buff := bytes.NewBuffer(msg)
-	http.Post("http://" + url, "application/json", buff)
+	http.Post("http://"+url, "application/json", buff)
 }
