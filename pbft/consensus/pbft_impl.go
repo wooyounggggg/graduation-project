@@ -3,8 +3,8 @@ package consensus
 import (
 	"encoding/json"
 	"errors"
-	"time"
 	"fmt"
+	"time"
 )
 
 type State struct {
