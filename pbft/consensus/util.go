@@ -42,6 +42,10 @@ func LeaderMapping(nodeId string, N int, K int) string {
 	// 15 -> 20 / 5 = 4 (1, 2, 3, 4)
 	// 
 	quotient := N / K
+	if (CustomAtoi(nodeId) <= quotient ){
+		fmt.Println("nodeId: "+nodeId + " LeaderId: -1")
+		return "-1"
+	}
 	idInt := CustomAtoi(nodeId)-1
 	clusterNo := idInt / quotient
 	result := strconv.Itoa(clusterNo * quotient + 1)
