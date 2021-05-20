@@ -48,12 +48,6 @@ func NewNode(nodeID string, N int, K int) *Node {
 			아래 NodeTable의 key가 들어갑니다.
 		*/
 		NodeID: nodeID,
-		NodeTable: map[string]string{
-			"Apple":  "localhost:1111",
-			"MS":     "localhost:1112",
-			"Google": "localhost:1113",
-			"IBM":    "localhost:1114",
-		},
 		NodeTable: consensus.MakeNodeTable(N),
 		View: &View{
 			ID:      viewID,
@@ -188,7 +182,7 @@ func (node *Node) updateView(viewID int64) {
 	node.View.ID = viewID
 	// viewIdx := viewID % int64(len(node.NodeTable))
 	// For test (Apple -> MS)
-	node.View.Primary = node.NodeTable["MS"]
+	node.View.Primary = node.NodeTable["1"]
 
 	fmt.Println("ViewID:", node.View.ID, "Primary:", node.View.Primary)
 }

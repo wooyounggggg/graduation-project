@@ -135,11 +135,7 @@ func send(url string, msg []byte) error {
 /*
 	node.GetAuthorize()를 실행합니다
 */
+}
 func (server *Server) getauthorize(writer http.ResponseWriter, request *http.Request) {
 	server.node.GetAuthorize()
-}
-
-func send(url string, msg []byte) {
-	buff := bytes.NewBuffer(msg)
-	http.Post("http://"+url, "application/json", buff)
 }
