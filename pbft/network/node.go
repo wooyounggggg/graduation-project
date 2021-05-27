@@ -48,14 +48,14 @@ func NewNode(nodeID string, N int, K int) *Node {
 			아래 NodeTable의 key가 들어갑니다.
 		*/
 		NodeID:    nodeID,
-		NodeTable: consensus.MakeNodeTable(N),
+		NodeTable: consensus.MakeNodeTable(nodeID, N, K),
 		View: &View{
 			ID:      viewID,
 			Primary: "1",
 		},
 
-		IsLeader:    false,
 		LeaderId:    consensus.LeaderMapping(nodeID, N, K),
+		IsLeader:    consensus.LeaderMapping(nodeID, N, K) == nodeID ,
 		Reliability: 0,
 
 		// Consensus-related struct
@@ -74,7 +74,6 @@ func NewNode(nodeID string, N int, K int) *Node {
 		MsgDelivery: make(chan interface{}),
 		Alarm:       make(chan bool),
 	}
-
 	// Start message dispatcher
 	go node.dispatchMsg()
 

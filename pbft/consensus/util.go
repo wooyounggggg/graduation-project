@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 )
@@ -41,15 +42,16 @@ func LeaderMapping(nodeId string, N int, K int) string {
 	// 1,2,3,4 / 5,6,7,8 / .... / 17,18,19,20
 	// 15 -> 20 / 5 = 4 (1, 2, 3, 4)
 	// 
+	
 	quotient := N / K
-	if (CustomAtoi(nodeId) <= quotient ){
+	/* if (CustomAtoi(nodeId) <= quotient ){
 		fmt.Println("nodeId: "+nodeId + " LeaderId: -1")
 		return "-1"
-	}
+	} */
 	idInt := CustomAtoi(nodeId)-1
+	if (idInt < 0) { return "" }
 	clusterNo := idInt / quotient
 	result := strconv.Itoa(clusterNo * quotient + 1)
-	fmt.Println("nodeId: "+nodeId + " LeaderId: " + result)
 	return result
 }
 
@@ -65,15 +67,19 @@ func LeaderMapping(nodeId string, N int, K int) string {
 	@params
 		int max: 노드의 총 개수
 */
-func MakeNodeTable(max int) map[string]string {
-    min := 1
-	nodeArray := make([]int, max-min+1)
+func MakeNodeTable(nodeId string, N int, K int) map[string]string {
+    quote := N / K
+	idInt := CustomAtoi(nodeId)
+	min := int(math.Max(float64(idInt - quote-1), float64(0)))
+	max := int(math.Min(float64(idInt + quote+1), float64(N)))
+	nodeArray := make([]int, max-min)
     for i := range nodeArray {
         nodeArray[i] = min + i
     }
 	nodeTable := map[string]string {}
 	for i := range nodeArray {
-		nodeTable[strconv.Itoa(i+1)] = "localhost:" + strconv.Itoa(1110 + i+1)
+		if (LeaderMapping(nodeId, N, K) == LeaderMapping(strconv.Itoa(i), N, K)){
+			nodeTable[strconv.Itoa(i)] = "localhost:" + strconv.Itoa(1110 + i)}
 	}
     return nodeTable
 }
