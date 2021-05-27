@@ -83,3 +83,19 @@ func MakeNodeTable(nodeId string, N int, K int) map[string]string {
 	}
     return nodeTable
 }
+
+func MakeLeaderTable(N int, K int) map[string]string {
+	quote := N / K
+	nodeArray := make([]int, K)
+	leaderTable := map[string]string {}
+
+	for i := range nodeArray {
+		nodeArray[i] = 1 + quote * i
+	}
+	for i := range nodeArray {
+		nodeId := strconv.Itoa(nodeArray[i])
+		leaderTable[nodeId] = "localhost:" + strconv.Itoa(1110 + nodeArray[i])
+	}
+	fmt.Println(leaderTable)
+	return leaderTable
+}

@@ -22,6 +22,7 @@ type Node struct {
 	Alarm           chan bool
 	IsLeader        bool   /* Leader 여부 */
 	LeaderId        string /* 클러스터 리더의 ID */
+	LeaderTable		map[string]string
 	Reliability     int    /* 노드 신뢰도 */
 }
 
@@ -55,7 +56,8 @@ func NewNode(nodeID string, N int, K int) *Node {
 		},
 
 		LeaderId:    consensus.LeaderMapping(nodeID, N, K),
-		IsLeader:    consensus.LeaderMapping(nodeID, N, K) == nodeID ,
+		IsLeader:    consensus.LeaderMapping(nodeID, N, K) == nodeID,
+		LeaderTable:	 consensus.MakeLeaderTable(N, K),
 		Reliability: 0,
 
 		// Consensus-related struct
