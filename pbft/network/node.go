@@ -10,19 +10,19 @@ import (
 
 type Node struct {
 	ViewChangeState *consensus.ViewChangeState
-	MsgError        chan []error
-	NodeID          string
-	NodeTable       map[string]string // key=nodeID, value=url
-	View            *View
-	CurrentState    *consensus.State
-	CommittedMsgs   []*consensus.RequestMsg // kinda block.
-	MsgBuffer       *MsgBuffer
-	MsgEntrance     chan interface{}
-	MsgDelivery     chan interface{}
-	Alarm           chan bool
-	IsLeader        bool   /* Leader 여부 */
-	LeaderId        string /* 클러스터 리더의 ID */
-	Reliability     int    /* 노드 신뢰도 */
+	MsgError      chan []error
+	NodeID        string
+	NodeTable     map[string]string // key=nodeID, value=url
+	View          *View
+	CurrentState  *consensus.State
+	CommittedMsgs []*consensus.RequestMsg // kinda block.
+	MsgBuffer     *MsgBuffer
+	MsgEntrance   chan interface{}
+	MsgDelivery   chan interface{}
+	Alarm         chan bool
+	IsLeader	    bool			/* Leader 여부 */
+	LeaderId	    string		/* 클러스터 리더의 ID */
+	Reliability	  int			/* 노드 신뢰도 */
 }
 
 type MsgBuffer struct {
@@ -47,7 +47,7 @@ func NewNode(nodeID string, N int, K int) *Node {
 			기존에 Apple, Google, IBM 등으로 main 실행시에 입력하던 [nodeId] 부분에
 			아래 NodeTable의 key가 들어갑니다.
 		*/
-		NodeID:    nodeID,
+		NodeID: nodeID,
 		NodeTable: consensus.MakeNodeTable(N),
 		View: &View{
 			ID:      viewID,
@@ -55,7 +55,7 @@ func NewNode(nodeID string, N int, K int) *Node {
 		},
 
 		IsLeader:    false,
-		LeaderId:    consensus.LeaderMapping(nodeID, N, K),
+		LeaderId:	 consensus.LeaderMapping(nodeID, N, K),
 		Reliability: 0,
 
 		// Consensus-related struct
@@ -123,8 +123,8 @@ func (node *Node) BroadcastNil(path string) {
 		if nodeID == node.NodeID {
 			continue
 		}
-		go send(node.NodeTable[node.View.Primary]+path, nil)
-		go send(url+path, nil)
+		send(node.NodeTable[node.View.Primary]+path, nil)
+		send(url+path, nil)
 	}
 }
 
@@ -140,19 +140,19 @@ func (node *Node) Reply(msg *consensus.ReplyMsg) error {
 		return err
 	}
 
-	go send(node.NodeTable[node.View.Primary]+"/reply", jsonMsg)
+	send(node.NodeTable[node.View.Primary]+"/reply", jsonMsg)
 	/*
 	   primary node가 commit message처리후 stage done : reply에 들어가면 primaey node의 currentstate nil로 변경합니다
 	   다음 req를 받기위해 nodeTable에 있는 모든 node에게 /authorization보냅니다
 	*/
+	if node.NodeTable[node.NodeID] == node.NodeTable[node.View.Primary] {
+		node.BroadcastNil("/authorization")
+	}
 	// Client가 없으므로, 일단 Primary에게 보내는 걸로 처리.
-	go send(node.NodeTable[node.View.Primary]+"/reply", jsonMsg)
+	send(node.NodeTable[node.View.Primary]+"/reply", jsonMsg)
 
-	// if node.NodeTable[node.NodeID] == node.NodeTable[node.View.Primary] {
-	// 	go node.BroadcastNil("/authorization")
-	// }
 	//ViewChange for test
-	// node.StartViewChange()
+	node.StartViewChange()
 
 	return nil
 }
@@ -175,14 +175,14 @@ func (node *Node) StartViewChange() {
 		return
 	}
 
-	go node.Broadcast(viewChangeMsg, "/viewchange")
+	node.Broadcast(viewChangeMsg, "/viewchange")
 }
 
 func (node *Node) updateView(viewID int64) {
 	node.View.ID = viewID
 	// viewIdx := viewID % int64(len(node.NodeTable))
 	// For test (Apple -> MS)
-	node.View.Primary = node.NodeTable["2"]
+	node.View.Primary = node.NodeTable["1"]
 
 	fmt.Println("ViewID:", node.View.ID, "Primary:", node.View.Primary)
 }
@@ -190,7 +190,7 @@ func (node *Node) updateView(viewID int64) {
 func (node *Node) NewView(newviewMsg *consensus.NewViewMsg) error {
 	LogMsg(newviewMsg)
 
-	go node.Broadcast(newviewMsg, "/newview")
+	node.Broadcast(newviewMsg, "/newview")
 	LogStage("NewView", true)
 
 	return nil
@@ -247,7 +247,7 @@ func (node *Node) GetReq(reqMsg *consensus.RequestMsg) error {
 
 	// Send getPrePrepare message
 	if prePrepareMsg != nil {
-		go node.Broadcast(prePrepareMsg, "/preprepare")
+		node.Broadcast(prePrepareMsg, "/preprepare")
 		LogStage("Pre-prepare", true)
 	}
 
@@ -275,7 +275,7 @@ func (node *Node) GetPrePrepare(prePrepareMsg *consensus.PrePrepareMsg) error {
 		prePareMsg.NodeID = node.NodeID
 
 		LogStage("Pre-prepare", true)
-		go node.Broadcast(prePareMsg, "/prepare")
+		node.Broadcast(prePareMsg, "/prepare")
 		LogStage("Prepare", false)
 	}
 
@@ -295,7 +295,7 @@ func (node *Node) GetPrepare(prepareMsg *consensus.VoteMsg) error {
 		commitMsg.NodeID = node.NodeID
 
 		LogStage("Prepare", true)
-		go node.Broadcast(commitMsg, "/commit")
+		node.Broadcast(commitMsg, "/commit")
 		LogStage("Commit", false)
 	}
 
@@ -330,9 +330,7 @@ func (node *Node) GetCommit(commitMsg *consensus.VoteMsg) error {
 
 //The client will collect these reply messages and if f + 1 valid reply messages are arrived, the client will accept the result.
 func (node *Node) GetReply(msg *consensus.ReplyMsg) {
-	t := time.Now().UnixNano()
-
-	fmt.Printf("Result: %s by %s\n, time: %d", msg.Result, msg.NodeID, t)
+	fmt.Printf("Result: %s by %s\n", msg.Result, msg.NodeID)
 }
 
 //node의 currentstate를 nil로 바꿉니다
