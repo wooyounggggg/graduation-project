@@ -24,6 +24,8 @@ type Node struct {
 	LeaderId        string /* 클러스터 리더의 ID */
 	LeaderTable		map[string]string
 	Reliability     int    /* 노드 신뢰도 */
+	StartTime		int64
+	EndTime			int64
 }
 
 type MsgBuffer struct {
@@ -185,7 +187,10 @@ func (node *Node) Reply(msg *consensus.ReplyMsg) error {
 	// }
 	//ViewChange for test
 	// node.StartViewChange()
-
+	if node.NodeID == node.View.Primary {
+		node.EndTime = time.Now().UnixNano()
+		fmt.Printf("START CONSENSUS : %s\nEND CONSENSUS : %s\ntotal time: %f sec\n", time.Unix(0, node.StartTime), time.Unix(0, node.EndTime), float32(node.EndTime-node.StartTime)/1000000000)
+	}
 	return nil
 }
 
@@ -380,7 +385,7 @@ func (node *Node) createStateForNewConsensus() error {
 	if node.CurrentState != nil {
 		return errors.New("another consensus is ongoing")
 	}
-
+	node.StartTime = time.Now().UnixNano()
 	// Get the last sequence ID
 	var lastSequenceID int64
 	if len(node.CommittedMsgs) == 0 {
