@@ -54,7 +54,7 @@ func NewNode(nodeID string, N int, K int) *Node {
 		NodeTable: consensus.MakeNodeTable(nodeID, N, K),
 		View: &View{
 			ID:      viewID,
-			Primary: "localhost:1111",
+			Primary: "1",
 		},
 
 		LeaderId:    consensus.LeaderMapping(nodeID, N, K),
