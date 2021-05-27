@@ -52,7 +52,7 @@ func NewNode(nodeID string, N int, K int) *Node {
 		NodeTable: consensus.MakeNodeTable(nodeID, N, K),
 		View: &View{
 			ID:      viewID,
-			Primary: "1",
+			Primary: "localhost:1111",
 		},
 
 		LeaderId:    consensus.LeaderMapping(nodeID, N, K),
@@ -84,13 +84,45 @@ func NewNode(nodeID string, N int, K int) *Node {
 
 	// Start message resolver
 	go node.resolveMsg()
-
+	fmt.Println(node.NodeTable)
 	return node
 }
 
-func (node *Node) Broadcast(msg interface{}, path string) map[string]error {
+func (node *Node) BroadcastToLeaders(msg interface{}) map[string]error {
 	errorMap := make(map[string]error)
+	for nodeID, url := range node.LeaderTable {
+		if nodeID == node.NodeID {
+			continue
+		}
 
+		jsonMsg, err := json.Marshal(msg)
+		if err != nil {
+			errorMap[nodeID] = err
+			continue
+		}
+
+		err = send(url+"/req", jsonMsg)
+		if err != nil {
+			errorMap[nodeID] = err
+			continue
+		}
+	}
+
+	if len(errorMap) == 0 {
+		return nil
+	} else {
+		for nodeID, err := range errorMap {
+			fmt.Printf("[%s]: %s\n", nodeID, err)
+		}
+		panic("Broadcast ERROR!!!")
+	}
+}
+
+func (node *Node) BroadcastToNodes(msg interface{}, path string) map[string]error {
+	errorMap := make(map[string]error)
+	if(node.View.Primary == node.NodeTable[node.NodeID]) {
+		node.BroadcastToLeaders(msg)
+	}
 	for nodeID, url := range node.NodeTable {
 		if nodeID == node.NodeID {
 			continue
@@ -141,10 +173,9 @@ func (node *Node) Reply(msg *consensus.ReplyMsg) error {
 		return err
 	}
 
-	go send(node.NodeTable[node.View.Primary]+"/reply", jsonMsg)
 	/*
-	   primary node가 commit message처리후 stage done : reply에 들어가면 primaey node의 currentstate nil로 변경합니다
-	   다음 req를 받기위해 nodeTable에 있는 모든 node에게 /authorization보냅니다
+		primary node가 commit message처리후 stage done : reply에 들어가면 primaey node의 currentstate nil로 변경합니다
+		다음 req를 받기위해 nodeTable에 있는 모든 node에게 /authorization보냅니다
 	*/
 	// Client가 없으므로, 일단 Primary에게 보내는 걸로 처리.
 	go send(node.NodeTable[node.View.Primary]+"/reply", jsonMsg)
@@ -176,7 +207,7 @@ func (node *Node) StartViewChange() {
 		return
 	}
 
-	go node.Broadcast(viewChangeMsg, "/viewchange")
+	go node.BroadcastToNodes(viewChangeMsg, "/viewchange")
 }
 
 func (node *Node) updateView(viewID int64) {
@@ -191,7 +222,7 @@ func (node *Node) updateView(viewID int64) {
 func (node *Node) NewView(newviewMsg *consensus.NewViewMsg) error {
 	LogMsg(newviewMsg)
 
-	go node.Broadcast(newviewMsg, "/newview")
+	go node.BroadcastToNodes(newviewMsg, "/newview")
 	LogStage("NewView", true)
 
 	return nil
@@ -248,7 +279,7 @@ func (node *Node) GetReq(reqMsg *consensus.RequestMsg) error {
 
 	// Send getPrePrepare message
 	if prePrepareMsg != nil {
-		go node.Broadcast(prePrepareMsg, "/preprepare")
+		go node.BroadcastToNodes(prePrepareMsg, "/preprepare")
 		LogStage("Pre-prepare", true)
 	}
 
@@ -259,7 +290,9 @@ func (node *Node) GetReq(reqMsg *consensus.RequestMsg) error {
 // Consensus start procedure for normal participants.
 func (node *Node) GetPrePrepare(prePrepareMsg *consensus.PrePrepareMsg) error {
 	LogMsg(prePrepareMsg)
-
+	if node.IsLeader {
+		node.BroadcastToNodes(prePrepareMsg, "/preprepare")
+	}
 	// Create a new state for the new consensus.
 	err := node.createStateForNewConsensus()
 	if err != nil {
@@ -276,7 +309,7 @@ func (node *Node) GetPrePrepare(prePrepareMsg *consensus.PrePrepareMsg) error {
 		prePareMsg.NodeID = node.NodeID
 
 		LogStage("Pre-prepare", true)
-		go node.Broadcast(prePareMsg, "/prepare")
+		go node.BroadcastToNodes(prePareMsg, "/prepare")
 		LogStage("Prepare", false)
 	}
 
@@ -296,7 +329,7 @@ func (node *Node) GetPrepare(prepareMsg *consensus.VoteMsg) error {
 		commitMsg.NodeID = node.NodeID
 
 		LogStage("Prepare", true)
-		go node.Broadcast(commitMsg, "/commit")
+		go node.BroadcastToNodes(commitMsg, "/commit")
 		LogStage("Commit", false)
 	}
 

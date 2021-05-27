@@ -70,8 +70,8 @@ func LeaderMapping(nodeId string, N int, K int) string {
 func MakeNodeTable(nodeId string, N int, K int) map[string]string {
     quote := N / K
 	idInt := CustomAtoi(nodeId)
-	min := int(math.Max(float64(idInt - quote-1), float64(0)))
-	max := int(math.Min(float64(idInt + quote+1), float64(N)))
+	min := int(math.Min(float64(idInt - quote-1), float64(0)))
+	max := int(math.Max(float64(idInt + quote+1), float64(N)))
 	nodeArray := make([]int, max-min)
     for i := range nodeArray {
         nodeArray[i] = min + i
