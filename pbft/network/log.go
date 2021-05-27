@@ -3,12 +3,9 @@ package network
 import (
 	"fmt"
 	"graduation-project/pbft/consensus"
-	// "time"
 )
 
 func LogMsg(msg interface{}) {
-	// t := time.Now().UnixNano()
-
 	switch m := msg.(type) {
 	case *consensus.RequestMsg:
 		fmt.Printf("[REQUEST] ClientID: %s, Timestamp: %d, Operation: %s\n", m.ClientID, m.Timestamp, m.Operation)
