@@ -23,6 +23,8 @@ type Node struct {
 	IsLeader        bool   /* Leader 여부 */
 	LeaderId        string /* 클러스터 리더의 ID */
 	Reliability     int    /* 노드 신뢰도 */
+	StartTime       int64
+	EndTime         int64
 }
 
 type MsgBuffer struct {
@@ -141,12 +143,16 @@ func (node *Node) Reply(msg *consensus.ReplyMsg) error {
 	}
 
 	go send(node.NodeTable[node.View.Primary]+"/reply", jsonMsg)
+
+	if node.NodeID == node.View.Primary {
+		node.EndTime = time.Now().UnixNano()
+		fmt.Printf("START CONSENSUS : %s\nEND CONSENSUS : %s\ntotal time: %f sec\n", time.Unix(0, node.StartTime), time.Unix(0, node.EndTime), float32(node.EndTime-node.StartTime)/1000000000)
+	}
 	/*
 	   primary node가 commit message처리후 stage done : reply에 들어가면 primaey node의 currentstate nil로 변경합니다
 	   다음 req를 받기위해 nodeTable에 있는 모든 node에게 /authorization보냅니다
 	*/
 	// Client가 없으므로, 일단 Primary에게 보내는 걸로 처리.
-	go send(node.NodeTable[node.View.Primary]+"/reply", jsonMsg)
 
 	// if node.NodeTable[node.NodeID] == node.NodeTable[node.View.Primary] {
 	// 	go node.BroadcastNil("/authorization")
@@ -346,6 +352,9 @@ func (node *Node) createStateForNewConsensus() error {
 	if node.CurrentState != nil {
 		return errors.New("another consensus is ongoing")
 	}
+
+	// 시간 측정 시작
+	node.StartTime = time.Now().UnixNano()
 
 	// Get the last sequence ID
 	var lastSequenceID int64
