@@ -369,9 +369,13 @@ func (node *Node) GetCommit(commitMsg *consensus.VoteMsg) error {
 
 //The client will collect these reply messages and if f + 1 valid reply messages are arrived, the client will accept the result.
 func (node *Node) GetReply(msg *consensus.ReplyMsg) {
+<<<<<<< HEAD
 	// t := time.Now().UnixNano()
 
 	// fmt.Printf("Result: %s by %s\n, time: %d", msg.Result, msg.NodeID, t)
+=======
+	fmt.Printf("Result: %s by %s\n", msg.Result, msg.NodeID)
+>>>>>>> origin/feature/5
 }
 
 //node의 currentstate를 nil로 바꿉니다
