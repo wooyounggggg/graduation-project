@@ -22,10 +22,10 @@ type Node struct {
 	Alarm           chan bool
 	IsLeader        bool   /* Leader 여부 */
 	LeaderId        string /* 클러스터 리더의 ID */
-	LeaderTable		map[string]string
-	Reliability     int    /* 노드 신뢰도 */
-	StartTime		int64
-	EndTime			int64
+	LeaderTable     map[string]string
+	Reliability     int /* 노드 신뢰도 */
+	StartTime       int64
+	EndTime         int64
 }
 
 type MsgBuffer struct {
@@ -59,7 +59,7 @@ func NewNode(nodeID string, N int, K int) *Node {
 
 		LeaderId:    consensus.LeaderMapping(nodeID, N, K),
 		IsLeader:    consensus.LeaderMapping(nodeID, N, K) == nodeID,
-		LeaderTable:	 consensus.MakeLeaderTable(N, K),
+		LeaderTable: consensus.MakeLeaderTable(N, K),
 		Reliability: 0,
 
 		// Consensus-related struct
@@ -122,7 +122,7 @@ func (node *Node) BroadcastToLeaders(msg interface{}) map[string]error {
 
 func (node *Node) BroadcastToNodes(msg interface{}, path string) map[string]error {
 	errorMap := make(map[string]error)
-	if(node.View.Primary == node.NodeTable[node.NodeID]) {
+	if node.View.Primary == node.NodeID {
 		node.BroadcastToLeaders(msg)
 	}
 	for nodeID, url := range node.NodeTable {
